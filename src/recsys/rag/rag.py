@@ -77,7 +77,10 @@ class ChunkStore:
         else:
             qv = hashing_embed(question, self._dim())
         sims = self._matrix @ qv
-        order = np.argsort(-sims)
+        n = len(self._ids)
+        k_eff = min(k * 4, n)
+        top = np.argpartition(-sims, k_eff - 1)[:k_eff] if k_eff < n else np.arange(n)
+        order = top[np.argsort(-sims[top])]
         allowed = set(content_filter) if content_filter else None
         results = []
         for i in order:

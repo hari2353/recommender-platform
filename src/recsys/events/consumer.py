@@ -12,6 +12,7 @@ class EventProcessor:
         self.on_valid_event = on_valid_event
         self.late_event_days = late_event_days
         self._seen: deque[str] = deque(maxlen=dedup_capacity)
+        self.dedup_capacity = dedup_capacity
         self._seen_set: set[str] = set()
         self.stats = {"accepted": 0, "duplicates": 0, "invalid": 0, "late": 0}
 
@@ -27,6 +28,9 @@ class EventProcessor:
             return False
         self._seen.append(event.event_id)
         self._seen_set.add(event.event_id)
+        if len(self._seen) == self._seen.maxlen:
+            evicted = self._seen[0]
+            self._seen_set.discard(evicted)
 
         age_days = (datetime.now(timezone.utc) - event.dt).total_seconds() / 86400
         if age_days > self.late_event_days:

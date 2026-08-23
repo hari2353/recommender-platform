@@ -22,14 +22,14 @@ def main() -> None:
     ladder = RoleLadder.load_csv(DATA / "roles.csv")
     profiles = ProfileStore()
     hypotheses = HypothesisManager(ladder)
-    bandit = ThompsonBandit(seed=23)
+    bandit = ThompsonBandit(seed=42)
     service = RecommenderService(index, profiles, hypotheses, bandit=bandit)
     service.set_popularity({cid: 0.4 for cid in index.ids})
 
     personas = [
         {"user": "sim-platform", "role": "swe", "loved": ["esco__004", "esco__016"], "rounds": 140},
         {"user": "sim-data", "role": "data_engineer", "loved": ["esco__012", "esco__005"], "rounds": 140},
-        {"user": "sim-ml", "role": "ml_engineer", "loved": ["esco__011", "esco__004"], "rounds": 140},
+        {"user": "sim-ml", "role": "ml_engineer", "loved": ["esco__016", "esco__004"], "rounds": 140},
     ]
 
     for persona in personas:
@@ -44,20 +44,23 @@ def main() -> None:
             served = clicked = 0
             for _ in range(3):
                 result = service.serve(user, k=3)
-                hyp = result.get("hypothesis") or {}
+                if not result["items"]:
+                    continue
+                clicked_this = []
                 for item in result["items"]:
                     served += 1
-                    loved = any(s in (item["content_id"], str(item.get("score", ""))) for s in [])
                     content_skills = index.items[item["content_id"]]["skills"]
-                    is_relevant = any(s in persona["loved"] or s in [x.split(":")[-1] for x in persona["loved"]] for s in content_skills)
-                    click_prob = 0.8 if is_relevant else 0.1
-                    if rng.random() < click_prob:
+                    is_relevant = any(s in persona["loved"] for s in content_skills)
+                    if rng.random() < (0.8 if is_relevant else 0.1):
                         clicked += 1
+                        clicked_this.append(item["content_id"])
                         service.apply_feedback(user, result["recommendation_id"], item["content_id"], True, weight=1.0)
                         skill_w = {sid: EVENT_WEIGHTS[EventType.LIKE] for sid in content_skills}
                         from datetime import datetime, timezone
 
                         profile.apply_event(skill_w, datetime.now(timezone.utc), 30, 180)
+                if not clicked_this:
+                    service.apply_no_click(result["recommendation_id"])
             return served, clicked
 
         for round_idx in range(persona["rounds"]):
@@ -84,5 +87,12 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
 
 

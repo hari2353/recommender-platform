@@ -163,11 +163,12 @@ class HypothesisManager:
             created.append(h)
         return created
 
-    def sample(self, user_id: str) -> Hypothesis | None:
+    def sample(self, user_id: str, epsilon: float | None = None) -> Hypothesis | None:
         candidates = self.hypotheses(user_id)
         if not candidates:
             return None
-        if self._rng.random() < self.epsilon:
+        eps = self.epsilon if epsilon is None else epsilon
+        if self._rng.random() < eps:
             return self._rng.choice(candidates)
         draws = [(self._rng.betavariate(h.alpha, h.beta), h) for h in candidates]
         draws.sort(key=lambda pair: -pair[0])

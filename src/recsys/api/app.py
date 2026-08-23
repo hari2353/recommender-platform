@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from pydantic import BaseModel, Field
 
 from ..config import Settings
 from ..content.index import ContentIndex
@@ -23,26 +25,32 @@ from ..scoring.profile_builder import ProfileStore
 
 
 class EventsIn(BaseModel):
-    events: list[dict]
+    events: list[dict] = Field(max_length=500)
 
 
 class FeedbackIn(BaseModel):
-    recommendation_id: str
-    content_id: str
-    action: str
-    user_id: str
+    recommendation_id: str = Field(max_length=64)
+    content_id: str = Field(max_length=128)
+    action: str = Field(max_length=16)
+    user_id: str = Field(max_length=128)
 
 
 class RagQueryIn(BaseModel):
-    question: str
-    k: int = 4
-    content_filter: list[str] | None = None
+    question: str = Field(min_length=1, max_length=2000)
+    k: int = Field(default=4, ge=1, le=20)
+    content_filter: list[str] | None = Field(default=None, max_length=50)
 
 
 class RagIngestIn(BaseModel):
-    content_id: str
-    text: str
-    strategy: str = "structural"
+    content_id: str = Field(max_length=128)
+    text: str = Field(min_length=1, max_length=400000)
+    strategy: Literal["structural", "semantic", "agentic"] = "structural"
+
+
+def require_admin(x_admin_token: str | None = Header(default=None)) -> None:
+    expected = os.getenv("RECSYS_ADMIN_TOKEN")
+    if expected and x_admin_token != expected:
+        raise HTTPException(status_code=401, detail="admin token required")
 
 
 def wire(data_dir: Path | None = None):
@@ -144,7 +152,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         return stats
 
     @app.get("/v1/users/{user_id}/recommendations")
-    def recommend(user_id: str, k: int = 5, role: str | None = None, tenant_id: str = "default") -> dict:
+    def recommend(user_id: str, k: int = Query(5, ge=1, le=50), role: str | None = Query(None, max_length=64), tenant_id: str = Query("default", max_length=64)) -> dict:
         premium = entitlements.is_premium(user_id, tenant_id)
         result = service.serve(user_id, tenant_id, k=k, allow_premium=True, ladder_role_id=role)
         hyp = result.get("hypothesis") or {}
@@ -207,12 +215,14 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         narrative = explainer.generate_learning_path_narrative(path)
         return {"path": path, "narrative": narrative}
 
-    @app.post("/admin/premium/{user_id}")
-    def grant_premium(user_id: str, tenant_id: str = "default") -> dict:
+    @app.post("/admin/premium/{user_id}", dependencies=[Depends(require_admin)])
+    def grant_premium(user_id: str, tenant_id: str = Query("default", max_length=64)) -> dict:
+        if len(user_id) > 128:
+            raise HTTPException(status_code=422, detail="user_id too long")
         entitlements.grant(user_id, tenant_id)
         return {"user_id": user_id, "premium": True}
 
-    @app.post("/admin/rebuild-index")
+    @app.post("/admin/rebuild-index", dependencies=[Depends(require_admin)])
     def rebuild_index() -> dict:
         index.rebuild()
         return {"content_items": len(index.ids)}
@@ -243,3 +253,5 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
 
 
 app = create_app()
+
+

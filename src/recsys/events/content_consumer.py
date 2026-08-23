@@ -30,6 +30,7 @@ class ContentEventProcessor:
         self.chunk_store = chunk_store
         self.tagger = tagger
         self._seen: deque[str] = deque(maxlen=dedup_capacity)
+        self._seen_set: set[str] = set()
         self.stats = {"created": 0, "updated": 0, "deleted": 0, "duplicates": 0, "stale_version": 0, "invalid": 0}
 
     def process_dict(self, raw: dict) -> bool:
@@ -38,10 +39,13 @@ class ContentEventProcessor:
         except Exception:
             self.stats["invalid"] += 1
             return False
-        if event.event_id in set(self._seen):
+        if event.event_id in self._seen_set:
             self.stats["duplicates"] += 1
             return False
         self._seen.append(event.event_id)
+        self._seen_set.add(event.event_id)
+        if len(self._seen) == self._seen.maxlen:
+            self._seen_set.discard(self._seen[0])
 
         if event.type == "course.deleted":
             self.index.remove(event.content_id)

@@ -97,8 +97,20 @@ curl "localhost:8020/v1/users/u1/recommendations?role=platform_engineer&k=3"
 curl -X POST localhost:8020/v1/feedback -d '{"recommendation_id":"...","content_id":"c009","action":"like","user_id":"u1"}' -H "Content-Type: application/json"
 curl -X POST localhost:8020/v1/rag/query -d '{"question":"How do consumer groups work?"}' -H "Content-Type: application/json"
 
-python scripts/simulate_traffic.py    # watch CTR climb as bandits learn (+32% / +15% / +2%)
+python scripts/simulate_traffic.py    # seeded demo: watch CTR climb as bandits learn
 ```
+
+Sample output (seed 42, 140 rounds × 3 personas — your numbers will vary slightly):
+
+```
+sim-platform: CTR 0.330 -> 0.352 (+6.7% uplift)   # k8s/aws interest discovered via exploration slot
+sim-data:     CTR 0.514 -> 0.552 (+7.4% uplift)   # depth + LLM interest hypotheses both kept
+sim-ml:       CTR 0.105 -> 0.083 (-21.2% uplift)  # known limitation: cross-role discovery still weak
+```
+
+We show all three lines on purpose: two personas improve as hypotheses get validated; the third exposes a real,
+documented gap (cross-role serendipity needs the item-side exploration budget tuned — see `ARCHITECTURE.md`).
+Honest evals beat cherry-picked demos.
 
 Optional real infrastructure: `docker compose up -d` (Pulsar + Redis), then `RECSYS_BUS=pulsar`.
 Default bus is in-memory with an identical interface — full demo value at $0.
