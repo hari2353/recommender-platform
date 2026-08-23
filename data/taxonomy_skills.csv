@@ -1,0 +1,17 @@
+skill_id,name,tier,aliases
+esco__001,Machine Learning,master,ML
+esco__002,Deep Learning,master,
+esco__003,Natural Language Processing,master,NLP
+esco__004,Kubernetes,master,K8s
+esco__005,Apache Spark,master,Spark
+esco__006,PostgreSQL,master,Postgres
+esco__007,Python,master,
+esco__008,Java,master,
+esco__009,Apache Kafka,master,Kafka
+esco__010,Docker,master,
+esco__011,Retrieval-Augmented Generation,master,RAG
+esco__012,Large Language Models,master,LLM|LLMs
+esco__013,Microservices,master,
+esco__014,ETL,master,
+esco__015,Data Engineering,master,
+esco__016,AWS,master,Amazon Web Services

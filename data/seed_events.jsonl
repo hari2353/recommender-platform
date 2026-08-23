@@ -1,0 +1,15 @@
+{"event_id": "s001", "user_id": "u1", "type": "view", "content_id": "c008", "dwell_ms": 240000}
+{"event_id": "s002", "user_id": "u1", "type": "like", "content_id": "c008"}
+{"event_id": "s003", "user_id": "u1", "type": "completion", "content_id": "c005", "dwell_ms": 1200000}
+{"event_id": "s004", "user_id": "u1", "type": "view", "content_id": "c010", "dwell_ms": 600000}
+{"event_id": "s005", "user_id": "u1", "type": "like", "content_id": "c012"}
+{"event_id": "s006", "user_id": "u2", "type": "view", "content_id": "c015", "dwell_ms": 900000}
+{"event_id": "s007", "user_id": "u2", "type": "like", "content_id": "c015"}
+{"event_id": "s008", "user_id": "u2", "type": "comment", "content_id": "c017", "dwell_ms": 300000}
+{"event_id": "s009", "user_id": "u2", "type": "view", "content_id": "c007", "dwell_ms": 180000}
+{"event_id": "s010", "user_id": "u2", "type": "dislike", "content_id": "c019"}
+{"event_id": "s011", "user_id": "u3", "type": "view", "content_id": "c022", "dwell_ms": 800000}
+{"event_id": "s012", "user_id": "u3", "type": "like", "content_id": "c023"}
+{"event_id": "s013", "user_id": "u3", "type": "view", "content_id": "c021", "dwell_ms": 700000}
+{"event_id": "s014", "user_id": "u3", "type": "completion", "content_id": "c020", "dwell_ms": 1500000}
+{"event_id": "s015", "user_id": "u1", "type": "impression_no_click", "content_id": "c013"}

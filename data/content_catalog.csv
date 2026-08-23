@@ -1,0 +1,27 @@
+content_id,title,duration_class,locale,premium,published_at,skills
+c001,Python Fundamentals Bootcamp,long,en,false,2025-01-10,esco__007
+c002,Python One-Liners and Idioms,short,en,false,2025-03-02,esco__007
+c003,Advanced Python Patterns,long,en,true,2025-05-11,esco__007|esco__013
+c004,Docker Deep Dive,long,en,false,2024-12-01,esco__010
+c005,Docker in 20 Minutes,short,en,false,2025-06-15,esco__010
+c006,PostgreSQL Performance Tuning,long,en,false,2025-02-20,esco__006
+c007,SQL for Engineers Crash Course,short,en,false,2025-07-01,esco__006|esco__014
+c008,Kubernetes for Developers,long,en,false,2025-01-25,esco__004
+c009,K8s Networking Explained,short,en,true,2025-08-05,esco__004
+c010,Production Kubernetes Operations,long,en,true,2025-04-18,esco__004|esco__010
+c011,AWS Core Services Primer,long,en,false,2025-03-30,esco__016
+c012,AWS Cost Optimization Quick Wins,short,en,false,2025-08-12,esco__016
+c013,Kafka Streams in Action,long,en,false,2025-02-11,esco__009
+c014,Kafka vs RabbitMQ Explained,short,en,false,2025-06-28,esco__009
+c015,Apache Spark at Scale,long,en,false,2024-11-15,esco__005|esco__015
+c016,Spark Performance Tuning,long,en,true,2025-05-22,esco__005
+c017,Modern ETL Design Patterns,long,en,false,2025-01-05,esco__014|esco__015
+c018,Data Engineering Essentials,short,en,false,2025-07-19,esco__015
+c019,Machine Learning Foundations,long,en,false,2025-02-02,esco__001
+c020,Feature Engineering Sprint,short,en,false,2025-06-09,esco__001
+c021,Large Language Models in Production,long,en,true,2025-04-30,esco__012|esco__001
+c022,RAG Systems from Scratch,long,en,false,2025-05-05,esco__011|esco__012
+c023,Prompting LLMs Effectively,short,en,false,2025-08-01,esco__012
+c024,Microservices Architecture Masterclass,long,en,false,2025-03-14,esco__013|esco__010
+c025,RAG Evaluation Playbook,short,en,false,2025-07-22,esco__011
+c026,GitOps for Kubernetes,long,en,true,2025-06-03,esco__004|esco__010

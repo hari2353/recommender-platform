@@ -1,0 +1,6 @@
+role_id,title,skills,next_roles
+swe,Software Engineer,"esco__007:0.9|esco__010:0.7|esco__006:0.6",platform_engineer|ml_engineer
+platform_engineer,Platform Engineer,"esco__004:0.95|esco__016:0.85|esco__010:0.8|esco__009:0.7",architect
+data_engineer,Data Engineer,"esco__005:0.9|esco__014:0.75|esco__006:0.8|esco__015:0.85",ml_engineer
+ml_engineer,ML Engineer,"esco__007:0.9|esco__001:0.85|esco__012:0.8|esco__011:0.75",
+architect,Principal Architect,"esco__013:0.9|esco__004:0.8|esco__016:0.75",
