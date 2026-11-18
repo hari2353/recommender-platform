@@ -114,12 +114,12 @@ curl -X POST localhost:8020/v1/rag/query -d '{"question":"How do consumer groups
 python scripts/simulate_traffic.py    # seeded demo: watch CTR climb as bandits learn
 ```
 
-Sample output (seed 42, 140 rounds × 3 personas — your numbers will vary slightly):
+Sample output (seed 42, 140 rounds × 3 personas — seeded, so these reproduce exactly):
 
 ```
-sim-platform: CTR 0.330 -> 0.352 (+6.7% uplift)   # k8s/aws interest discovered via exploration slot
-sim-data:     CTR 0.514 -> 0.552 (+7.4% uplift)   # depth + LLM interest hypotheses both kept
-sim-ml:       CTR 0.105 -> 0.083 (-21.2% uplift)  # known limitation: cross-role discovery still weak
+sim-platform: CTR 0.483 -> 0.683 (+41.4% uplift)   # k8s/aws interest discovered via exploration slot
+sim-data:     CTR 0.565 -> 0.730 (+29.2% uplift)   # depth + LLM interest hypotheses both kept
+sim-ml:       CTR 0.105 -> 0.083 (-21.2% uplift)   # known limitation: cross-role discovery still weak
 ```
 
 We show all three lines on purpose: two personas improve as hypotheses get validated; the third exposes a real,
@@ -140,7 +140,7 @@ Default bus is in-memory with an identical interface — full demo value at $0.
 
 ## Tests
 
-37 tests cover dedup/watermarks, decay math, tier filtering, reranker blending, Thompson convergence,
+55 tests cover dedup/watermarks, decay math, tier filtering, reranker blending, Thompson convergence,
 hypothesis weeding, chunkers (all three strategies), RAG citations, entitlement gating, GDPR delete,
 and the full HTTP loop: events → profile → recommendations → feedback → hardened next serve.
 
