@@ -65,8 +65,14 @@ def wire(data_dir: Path | None = None):
     bandit = ThompsonBandit()
 
     def on_event(event):
+        profile = profiles.get_or_create(event.user_id, event.tenant_id)
         if event.type.value == "dislike":
-            profile = profiles.get_or_create(event.user_id, event.tenant_id)
+            item = index.items.get(event.content_id)
+            if item:
+                profile.hard_filters.add(event.content_id)
+            return
+        if event.type.value == "completion":
+            # finished content is never re-served (serving hygiene)
             item = index.items.get(event.content_id)
             if item:
                 profile.hard_filters.add(event.content_id)

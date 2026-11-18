@@ -95,6 +95,20 @@ curl -X POST localhost:8020/v1/events -H "Content-Type: application/json" \
 
 curl "localhost:8020/v1/users/u1/recommendations?role=platform_engineer&k=3"
 curl -X POST localhost:8020/v1/feedback -d '{"recommendation_id":"...","content_id":"c009","action":"like","user_id":"u1"}' -H "Content-Type: application/json"
+```
+
+## Serving + eval hygiene (market-steal, 2026-11-18)
+
+- **Serving fatigue controls** — `completion` events now hard-filter the
+  item for that user (same path as dislike, permanent + idempotent), and
+  `serve()` applies a repeat cooldown: items served ≥
+  `repeat_serve_limit` (default 3) times are demoted, with a top-up rule
+  so the slate is never short.
+- **Ranking metrics** (`recsys/eval/ranking.py`) — `precision_at_k`,
+  `recall_at_k`, `mrr`, `ndcg_at_k`, `hit_rate_at_k` for retrieval evals.
+- **Off-policy eval hardening** (`recsys/eval/ips.py`) — `snips_estimate`
+  (self-normalized), `effective_sample_size`, and `compare_policies`
+  producing per-policy `{ips, snips, ess}` on the same impression log.
 curl -X POST localhost:8020/v1/rag/query -d '{"question":"How do consumer groups work?"}' -H "Content-Type: application/json"
 
 python scripts/simulate_traffic.py    # seeded demo: watch CTR climb as bandits learn

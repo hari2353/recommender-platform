@@ -15,6 +15,19 @@ from .reranker import CandidateReranker
 MODEL_VERSION = "recsys-0.1.0"
 
 
+def apply_repeat_cooldown(
+    served_counts: dict[str, int], ranked: list, k: int, limit: int
+) -> list:
+    """Drop items already served `limit` times for this user; if that would
+    leave fewer than k picks, top up with the suppressed items in ranked
+    order so the slate is never short."""
+    fresh = [c for c in ranked if served_counts.get(c[0], 0) < limit]
+    if len(fresh) >= k:
+        return fresh[:k]
+    suppressed = [c for c in ranked if served_counts.get(c[0], 0) >= limit]
+    return (fresh + suppressed)[:k]
+
+
 class RecommenderService:
     def __init__(
         self,
@@ -23,6 +36,7 @@ class RecommenderService:
         hypotheses: HypothesisManager,
         bandit: ThompsonBandit | None = None,
         diversity_lambda: float = 0.35,
+        repeat_serve_limit: int = 3,
     ) -> None:
         self.index = index
         self.profiles = profiles
@@ -30,6 +44,7 @@ class RecommenderService:
         self.bandit = bandit or ThompsonBandit()
         self.reranker = CandidateReranker(index)
         self.diversity_lambda = diversity_lambda
+        self.repeat_serve_limit = repeat_serve_limit
         self._rng = random.Random(13)
         self.impressions: dict[str, ImpressionRecord] = {}
         self.impression_hypothesis: dict[str, str] = {}
@@ -146,7 +161,12 @@ class RecommenderService:
                 (cid, score)
                 for cid, score in sorted(self.popularity.items(), key=lambda kv: -kv[1])
                 if cid not in profile.hard_filters
-            ][:k]
+            ]
+            popular = apply_repeat_cooldown(
+                profile.served_counts, popular, k, self.repeat_serve_limit
+            )
+            for cid, _ in popular:
+                profile.served_counts[cid] = profile.served_counts.get(cid, 0) + 1
             return {
                 "recommendation_id": rec_id,
                 "user_id": user_id,
@@ -155,7 +175,12 @@ class RecommenderService:
             }
 
         candidates = self._candidates_from_hypothesis(hypothesis, profile, allow_premium, k=k)
+        candidates = apply_repeat_cooldown(
+            profile.served_counts, candidates, k, self.repeat_serve_limit
+        )
         selected = self._mmr_select(candidates, k)
+        for cid, *_ in selected:
+            profile.served_counts[cid] = profile.served_counts.get(cid, 0) + 1
 
         if selected and self._rng.random() < 0.12:
             shown = {c[0] for c in selected}

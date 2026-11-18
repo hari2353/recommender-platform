@@ -37,6 +37,7 @@ class UserProfile:
         self.role = role
         self.skills: dict[str, SkillAffinity] = {}
         self.hard_filters: set[str] = set()
+        self.served_counts: dict[str, int] = {}
         self.total_events = 0
 
     def apply_event(self, skill_weights: dict[str, float], now: datetime, short_half_life: float, long_half_life: float) -> None:
