@@ -146,6 +146,12 @@ reciprocal-rank fusion (`rrf_k=60`). No new dependency; BM25 runs over the
 candidate docs only. Tradeoff: exact rare terms (names, error codes) now win
 ties, while dense similarity still dominates (70% weight by default).
 
+## Cohort slice evaluation (Harvard Edge DataPerf cross-pollination)
+
+`recsys.eval.slices.evaluate_cohorts` scores recommendations per user cohort:
+precision@k, hit rate and MRR, with a `min_support` guard so a small cohort
+cannot move the headline metric. No LLM judge, deterministic.
+
 ## Tests
 
 60 tests cover dedup/watermarks, decay math, tier filtering, reranker blending, hybrid
