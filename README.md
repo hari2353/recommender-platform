@@ -138,10 +138,19 @@ Default bus is in-memory with an identical interface — full demo value at $0.
 - Day zero: role-ladder seeding + elevated exploration; daily upgrades as posteriors sharpen
 - Offline policy evaluation via IPS over logged propensities (`recsys.eval.ips`)
 
+## Hybrid retrieval
+
+`CandidateReranker.rerank_hybrid(candidates, query, lexical_weight=0.3)` adds a
+candidate-local BM25 ranking and fuses it with the dense score using weighted
+reciprocal-rank fusion (`rrf_k=60`). No new dependency; BM25 runs over the
+candidate docs only. Tradeoff: exact rare terms (names, error codes) now win
+ties, while dense similarity still dominates (70% weight by default).
+
 ## Tests
 
-55 tests cover dedup/watermarks, decay math, tier filtering, reranker blending, Thompson convergence,
-hypothesis weeding, chunkers (all three strategies), RAG citations, entitlement gating, GDPR delete,
+60 tests cover dedup/watermarks, decay math, tier filtering, reranker blending, hybrid
+BM25/RRF fusion, Thompson convergence, hypothesis weeding, chunkers (all three
+strategies), RAG citations, entitlement gating, GDPR delete,
 and the full HTTP loop: events → profile → recommendations → feedback → hardened next serve.
 
 MIT
