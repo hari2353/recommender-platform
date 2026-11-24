@@ -1,5 +1,4 @@
 from recsys.content.sources import (
-    extract,
     estimate_duration_minutes,
     extract_from_aicc,
     extract_from_html,

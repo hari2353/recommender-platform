@@ -1,7 +1,5 @@
-import pytest
-
 from recsys.events.consumer import EventProcessor
-from recsys.events.schema import Event, EventType
+from recsys.events.schema import EventType
 
 
 def base_event(**overrides):

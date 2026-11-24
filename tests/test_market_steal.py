@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from recsys.engine.recommender import RecommenderService, apply_repeat_cooldown
+from recsys.engine.recommender import apply_repeat_cooldown
 from recsys.eval.ips import (
     compare_policies,
     ctr_metrics,

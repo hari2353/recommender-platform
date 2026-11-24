@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from .manager import RoleLadder
-from .models import RoleDefinition
 
 
 def build_learning_path(

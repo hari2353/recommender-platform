@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from recsys.eval.ips import ctr_metrics, ips_estimate
 
 
@@ -40,7 +38,6 @@ def test_ctr_metrics_math():
 def test_hypothesis_weeding_lifecycle():
     from recsys.hypotheses.manager import RoleLadder, HypothesisManager
     from pathlib import Path
-    import sys
 
     data = Path(__file__).resolve().parents[1] / "data"
     mgr = HypothesisManager(RoleLadder.load_csv(data / "roles.csv"))

@@ -1,6 +1,3 @@
-import pytest
-
-from recsys.content.index import ContentIndex
 from recsys.engine.cmab import ThompsonBandit
 from recsys.engine.reranker import CandidateReranker
 

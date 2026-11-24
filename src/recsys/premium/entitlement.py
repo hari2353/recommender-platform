@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-
 
 class EntitlementService:
     def __init__(self, premium_users: set[str] | None = None) -> None:
