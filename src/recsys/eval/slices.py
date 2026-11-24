@@ -63,20 +63,23 @@ def evaluate_cohorts(
 
     reliable = [s for s in slices.values() if not s.low_support]
     micro_precision = sum(
-        len(set(ranked[:k]) & relevant) / k
-        for _cohort, ranked, relevant in cases
+        len(set(ranked[:k]) & relevant) / k for _cohort, ranked, relevant in cases
     ) / len(cases)
-    micro_hits = sum(1 for _cohort, ranked, relevant in cases if set(ranked[:k]) & relevant)
+    micro_hits = sum(
+        1 for _cohort, ranked, relevant in cases if set(ranked[:k]) & relevant
+    )
     return {
         "k": k,
         "micro_precision_at_k": round(micro_precision, 4),
         "micro_hit_rate": round(micro_hits / len(cases), 4),
         "macro_precision_at_k": round(
             sum(s.precision_at_k for s in reliable) / len(reliable), 4
-        ) if reliable else 0.0,
-        "macro_mrr": round(
-            sum(s.mrr for s in reliable) / len(reliable), 4
-        ) if reliable else 0.0,
+        )
+        if reliable
+        else 0.0,
+        "macro_mrr": round(sum(s.mrr for s in reliable) / len(reliable), 4)
+        if reliable
+        else 0.0,
         "slices": slices,
         "low_support_slices": sorted(s.name for s in slices.values() if s.low_support),
     }

@@ -27,11 +27,17 @@ def extract_from_scorm(xml_text: str) -> dict:
     ns_stripped = re.sub(r'xmlns="[^"]+"', "", xml_text)
     root = ET.fromstring(ns_stripped)
     title_el = root.find(".//title")
-    objectives = [_clean(el.text or "") for el in root.findall(".//objective/description") if el.text]
+    objectives = [
+        _clean(el.text or "")
+        for el in root.findall(".//objective/description")
+        if el.text
+    ]
     return {
         "title": _clean(title_el.text or "") if title_el is not None else "",
         "objectives": [o for o in objectives if o],
-        "text": _clean(" ".join(t.strip() for t in root.itertext() if t.strip()))[:20000],
+        "text": _clean(" ".join(t.strip() for t in root.itertext() if t.strip()))[
+            :20000
+        ],
     }
 
 
@@ -48,7 +54,11 @@ def extract_from_aicc(crs_text: str) -> dict:
             title = _clean(value)
             break
     description = _clean(" ".join(v for k, v in pairs if "DESCRIP" in k.upper()))
-    return {"title": title, "objectives": [description] if description else [], "text": _clean(" ".join(v for _, v in pairs))}
+    return {
+        "title": title,
+        "objectives": [description] if description else [],
+        "text": _clean(" ".join(v for _, v in pairs)),
+    }
 
 
 def parse_captions(vtt_or_srt: str) -> str:
@@ -70,12 +80,22 @@ def extract(source_type: str, payload: str) -> dict:
     if st == "aicc":
         return extract_from_aicc(payload)
     if st in ("srt", "vtt", "transcript"):
-        return {"title": "", "objectives": [], "text": parse_captions(payload) if st in ("srt", "vtt") else _clean(payload)}
+        return {
+            "title": "",
+            "objectives": [],
+            "text": parse_captions(payload)
+            if st in ("srt", "vtt")
+            else _clean(payload),
+        }
     if st == "pdf":
         try:
             from pdfminer.high_level import extract_text
 
-            return {"title": "", "objectives": [], "text": _clean(extract_text(payload))}
+            return {
+                "title": "",
+                "objectives": [],
+                "text": _clean(extract_text(payload)),
+            }
         except ImportError as exc:
             raise UnsupportedSource("pdfminer.six not installed") from exc
     raise UnsupportedSource(f"unsupported source type '{source_type}'")

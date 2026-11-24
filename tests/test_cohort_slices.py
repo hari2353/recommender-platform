@@ -35,9 +35,11 @@ def test_k_limits_precision():
 
 def test_invalid_inputs_rejected():
     case = [("premium", ["a"], {"a"})]
-    for kwargs in ({"cases": [], "k": 3, "min_support": 1},
-                   {"cases": case, "k": 0, "min_support": 1},
-                   {"cases": case, "k": 3, "min_support": 0}):
+    for kwargs in (
+        {"cases": [], "k": 3, "min_support": 1},
+        {"cases": case, "k": 0, "min_support": 1},
+        {"cases": case, "k": 3, "min_support": 0},
+    ):
         cases = kwargs.pop("cases")
         try:
             evaluate_cohorts(cases, **kwargs)

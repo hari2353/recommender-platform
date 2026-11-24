@@ -32,13 +32,15 @@ def build_learning_path(
             )
 
     depth_pool: dict[str, list[dict]] = {}
-    for skill_id in (current.skills if current else {}):
+    for skill_id in current.skills if current else {}:
         options = content_lookup.get(skill_id, [])
         long = [c for c in options if c.get("duration_class") == "long"]
         if long:
             depth_pool[skill_id] = long
 
-    for skill_id, options in sorted(depth_pool.items())[: max(0, max_steps - len(steps))]:
+    for skill_id, options in sorted(depth_pool.items())[
+        : max(0, max_steps - len(steps))
+    ]:
         steps.append(
             {
                 "skill_id": skill_id,

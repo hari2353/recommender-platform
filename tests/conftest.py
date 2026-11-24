@@ -38,5 +38,7 @@ def stack():
     hypotheses = HypothesisManager(ladder, seed=3)
     bandit = ThompsonBandit(seed=9)
     service = RecommenderService(index, profiles, hypotheses, bandit=bandit)
-    service.set_popularity({cid: 0.4 + (i % 10) * 0.02 for i, cid in enumerate(index.ids)})
+    service.set_popularity(
+        {cid: 0.4 + (i % 10) * 0.02 for i, cid in enumerate(index.ids)}
+    )
     return settings, index, ladder, profiles, hypotheses, bandit, service

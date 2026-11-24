@@ -52,25 +52,42 @@ class RecommenderService:
 
     def _query_text_for_hypothesis(self, hypothesis, profile) -> str:
         if hypothesis.type.value == "skill_interest":
-            return hypothesis.target.replace("__", " ").replace("esco ", "").replace("_", " ")
+            return (
+                hypothesis.target.replace("__", " ")
+                .replace("esco ", "")
+                .replace("_", " ")
+            )
         if hypothesis.type.value == "next_role_prep":
             role = self.hypotheses.ladder.get(hypothesis.target)
             if role:
-                gap = self.hypotheses.ladder.gap_skills(profile.role or "", hypothesis.target)
+                gap = self.hypotheses.ladder.gap_skills(
+                    profile.role or "", hypothesis.target
+                )
                 skills = list(gap or role.skills)
-                return " ".join(s.replace("__", " ").replace("_", " ") for s in skills) + f" {role.title}"
+                return (
+                    " ".join(s.replace("__", " ").replace("_", " ") for s in skills)
+                    + f" {role.title}"
+                )
         role = self.hypotheses.ladder.get(profile.role)
         if role:
             return " ".join(role.skills.keys()).replace("__", " ").replace("_", " ")
-        return " ".join(list(profile.blend().keys())[:5]).replace("__", " ").replace("_", " ")
+        return (
+            " ".join(list(profile.blend().keys())[:5])
+            .replace("__", " ")
+            .replace("_", " ")
+        )
 
-    def _candidates_from_hypothesis(self, hypothesis, profile, allow_premium: bool, k: int = 5) -> list[str]:
+    def _candidates_from_hypothesis(
+        self, hypothesis, profile, allow_premium: bool, k: int = 5
+    ) -> list[str]:
         query_text = self._query_text_for_hypothesis(hypothesis, profile)
         blend = profile.blend()
         role = self.hypotheses.ladder.get(profile.role)
 
         if hypothesis.type.value == "skill_interest":
-            skill_query = {hypothesis.target: max(blend.get(hypothesis.target, 0.5), 0.5)}
+            skill_query = {
+                hypothesis.target: max(blend.get(hypothesis.target, 0.5), 0.5)
+            }
             for sid, score in list(blend.items())[:4]:
                 if sid != hypothesis.target:
                     skill_query[sid] = max(skill_query.get(sid, 0.0), score * 0.7)
@@ -79,8 +96,14 @@ class RecommenderService:
                     skill_query[sid] = max(skill_query.get(sid, 0.0), w * 0.4)
             base = self.index.search_by_skills(skill_query, top_n=15)
         elif hypothesis.type.value == "next_role_prep":
-            gaps = self.hypotheses.ladder.gap_skills(profile.role or "", hypothesis.target)
-            weights = gaps or (self.hypotheses.ladder.get(hypothesis.target).skills if self.hypotheses.ladder.get(hypothesis.target) else {})
+            gaps = self.hypotheses.ladder.gap_skills(
+                profile.role or "", hypothesis.target
+            )
+            weights = gaps or (
+                self.hypotheses.ladder.get(hypothesis.target).skills
+                if self.hypotheses.ladder.get(hypothesis.target)
+                else {}
+            )
             base = self.index.search_by_skills(weights or blend, top_n=15)
         elif hypothesis.type.value == "depth_in_role" and role:
             weights = dict(role.skills)
@@ -96,15 +119,21 @@ class RecommenderService:
 
         ids = [cid for cid, _ in base]
         ids = [cid for cid in ids if cid not in profile.hard_filters]
-        allow_premium_final = allow_premium and hypothesis.type.value != "next_role_prep"
-        ids = self.index.filter_items(ids, locale="en", allow_premium=allow_premium_final)
+        allow_premium_final = (
+            allow_premium and hypothesis.type.value != "next_role_prep"
+        )
+        ids = self.index.filter_items(
+            ids, locale="en", allow_premium=allow_premium_final
+        )
 
         reranked = self.reranker.rerank(ids, query_text, popularity=self.popularity)
         arm_bonus = []
         for cid, score in reranked:
             arm_key = f"{profile.segment}:{self.index.items[cid].primary_skill}"
             drawn = self.bandit.arm(arm_key).sample(self.bandit.rng)
-            arm_bonus.append((cid, round(score * (0.7 + 0.3 * drawn), 4), arm_key, drawn))
+            arm_bonus.append(
+                (cid, round(score * (0.7 + 0.3 * drawn), 4), arm_key, drawn)
+            )
         arm_bonus.sort(key=lambda t: -t[1])
         if len(arm_bonus) < k:
             seen_ids = {c[0] for c in arm_bonus}
@@ -112,14 +141,28 @@ class RecommenderService:
             if role:
                 for sid, w in role.skills.items():
                     weights[sid] = max(weights.get(sid, 0.0), w * 0.6)
-            generic = self.index.search_by_skills(weights or {sid: 1.0 for sid in list(self.index.by_skills_lookup())[:5]}, top_n=20)
-            generic_ids = [cid for cid, _ in generic if cid not in seen_ids and cid not in profile.hard_filters]
-            generic_ids = self.index.filter_items(generic_ids, locale="en", allow_premium=allow_premium)
-            extra = self.reranker.rerank(generic_ids, query_text, popularity=self.popularity)
+            generic = self.index.search_by_skills(
+                weights
+                or {sid: 1.0 for sid in list(self.index.by_skills_lookup())[:5]},
+                top_n=20,
+            )
+            generic_ids = [
+                cid
+                for cid, _ in generic
+                if cid not in seen_ids and cid not in profile.hard_filters
+            ]
+            generic_ids = self.index.filter_items(
+                generic_ids, locale="en", allow_premium=allow_premium
+            )
+            extra = self.reranker.rerank(
+                generic_ids, query_text, popularity=self.popularity
+            )
             for cid, score in extra:
                 arm_key = f"{profile.segment}:{self.index.items[cid].primary_skill}"
                 drawn = self.bandit.arm(arm_key).sample(self.bandit.rng)
-                arm_bonus.append((cid, round(score * (0.7 + 0.3 * drawn), 4), arm_key, drawn))
+                arm_bonus.append(
+                    (cid, round(score * (0.7 + 0.3 * drawn), 4), arm_key, drawn)
+                )
         return arm_bonus
 
     def _mmr_select(self, scored: list[tuple], k: int) -> list[tuple]:
@@ -137,7 +180,9 @@ class RecommenderService:
                     shared = len(set(item["skills"]) & set(other["skills"]))
                     union = len(set(item["skills"]) | set(other["skills"])) or 1
                     diversity_penalty = max(diversity_penalty, shared / union)
-                mmr = (1 - self.diversity_lambda) * cand[1] - self.diversity_lambda * diversity_penalty
+                mmr = (1 - self.diversity_lambda) * cand[
+                    1
+                ] - self.diversity_lambda * diversity_penalty
                 if mmr > best_score:
                     best_score = mmr
                     best = cand
@@ -147,12 +192,23 @@ class RecommenderService:
             pool.remove(best)
         return selected
 
-    def serve(self, user_id: str, tenant_id: str = "default", k: int = 5, allow_premium: bool = True, ladder_role_id: str | None = None) -> dict:
+    def serve(
+        self,
+        user_id: str,
+        tenant_id: str = "default",
+        k: int = 5,
+        allow_premium: bool = True,
+        ladder_role_id: str | None = None,
+    ) -> dict:
         profile = self.profiles.get_or_create(user_id, tenant_id)
         if ladder_role_id and not profile.role:
             profile.role = ladder_role_id
         self.hypotheses.ensure_base_hypotheses(profile, ladder_role_id=ladder_role_id)
-        epsilon = 0.4 if profile.segment == "new" else (0.25 if profile.segment == "casual" else None)
+        epsilon = (
+            0.4
+            if profile.segment == "new"
+            else (0.25 if profile.segment == "casual" else None)
+        )
         hypothesis = self.hypotheses.sample(user_id, epsilon=epsilon)
         rec_id = uuid.uuid4().hex[:12]
 
@@ -171,10 +227,21 @@ class RecommenderService:
                 "recommendation_id": rec_id,
                 "user_id": user_id,
                 "hypothesis": None,
-                "items": [{"content_id": cid, "title": self.index.items[cid]["title"] if cid in self.index.items else "", "score": score} for cid, score in popular],
+                "items": [
+                    {
+                        "content_id": cid,
+                        "title": self.index.items[cid]["title"]
+                        if cid in self.index.items
+                        else "",
+                        "score": score,
+                    }
+                    for cid, score in popular
+                ],
             }
 
-        candidates = self._candidates_from_hypothesis(hypothesis, profile, allow_premium, k=k)
+        candidates = self._candidates_from_hypothesis(
+            hypothesis, profile, allow_premium, k=k
+        )
         candidates = apply_repeat_cooldown(
             profile.served_counts, candidates, k, self.repeat_serve_limit
         )
@@ -184,10 +251,19 @@ class RecommenderService:
 
         if selected and self._rng.random() < 0.12:
             shown = {c[0] for c in selected}
-            pool = [cid for cid in self.index.ids if cid not in shown and cid not in profile.hard_filters]
+            pool = [
+                cid
+                for cid in self.index.ids
+                if cid not in shown and cid not in profile.hard_filters
+            ]
             if pool:
                 serendipity = self._rng.choice(pool)
-                selected[-1] = (serendipity, round(selected[-1][1] * 0.5, 4), f"explore:{self.index.items[serendipity].primary_skill}", 0.3)
+                selected[-1] = (
+                    serendipity,
+                    round(selected[-1][1] * 0.5, 4),
+                    f"explore:{self.index.items[serendipity].primary_skill}",
+                    0.3,
+                )
 
         record = ImpressionRecord(
             recommendation_id=rec_id,
@@ -203,7 +279,11 @@ class RecommenderService:
         return {
             "recommendation_id": rec_id,
             "user_id": user_id,
-            "hypothesis": {"id": hypothesis.id, "type": hypothesis.type.value, "statement": hypothesis.statement},
+            "hypothesis": {
+                "id": hypothesis.id,
+                "type": hypothesis.type.value,
+                "statement": hypothesis.statement,
+            },
             "items": [
                 {
                     "content_id": c[0],
@@ -216,7 +296,9 @@ class RecommenderService:
             ],
         }
 
-    def resolve_pending_impressions(self, user_id: str, feedback_given: set[str]) -> int:
+    def resolve_pending_impressions(
+        self, user_id: str, feedback_given: set[str]
+    ) -> int:
         now = datetime.now(timezone.utc)
         resolved = 0
         for record in self.impressions.values():
@@ -238,7 +320,14 @@ class RecommenderService:
                 self.impression_hypothesis.pop(key, None)
         return resolved
 
-    def apply_feedback(self, user_id: str, recommendation_id: str, content_id: str, success: bool, weight: float = 1.0) -> dict:
+    def apply_feedback(
+        self,
+        user_id: str,
+        recommendation_id: str,
+        content_id: str,
+        success: bool,
+        weight: float = 1.0,
+    ) -> dict:
         record = self.impressions.get(recommendation_id)
         outcome: dict = {"bandit_updated": False}
         if record and content_id in record.items:
@@ -267,16 +356,21 @@ class RecommenderService:
             self.bandit.update(record.arms[idx], success=False, weight=weight)
         hyp_id = self.impression_hypothesis.get(recommendation_id)
         if hyp_id:
-            self.hypotheses.apply_feedback(record.user_id, hyp_id, success=False, weight=weight)
+            self.hypotheses.apply_feedback(
+                record.user_id, hyp_id, success=False, weight=weight
+            )
         record.resolved = True
         return True
 
     def learning_path(self, user_id: str, target_role_id: str) -> dict:
         profile = self.profiles.get(user_id)
         lookup = self.index.by_skills_lookup()
-        return build_learning_path(self.hypotheses.ladder, profile.role if profile else None, target_role_id, lookup)
+        return build_learning_path(
+            self.hypotheses.ladder,
+            profile.role if profile else None,
+            target_role_id,
+            lookup,
+        )
 
     def set_popularity(self, popularity: dict[str, float]) -> None:
         self.popularity = popularity
-
-

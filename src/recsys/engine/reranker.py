@@ -16,7 +16,9 @@ def _tokens(text: str) -> list[str]:
     return _WORD.findall(text.lower())
 
 
-def _bm25(docs: dict[str, list[str]], query: str, k1: float = 1.5, b: float = 0.75) -> dict[str, float]:
+def _bm25(
+    docs: dict[str, list[str]], query: str, k1: float = 1.5, b: float = 0.75
+) -> dict[str, float]:
     """Okapi BM25 over the candidate documents only; no index-wide statistics."""
     terms = _tokens(query)
     if not docs or not terms:
@@ -32,15 +34,21 @@ def _bm25(docs: dict[str, list[str]], query: str, k1: float = 1.5, b: float = 0.
                 continue
             df = sum(1 for other in docs.values() if term in other)
             idf = math.log(1 + (len(docs) - df + 0.5) / (df + 0.5))
-            score += idf * tf * (k1 + 1) / (
-                tf + k1 * (1 - b + b * len(tokens) / avg_len)
+            score += (
+                idf * tf * (k1 + 1) / (tf + k1 * (1 - b + b * len(tokens) / avg_len))
             )
         scores[cid] = score
     return scores
 
 
 class CandidateReranker:
-    def __init__(self, index: ContentIndex, relevance_weight: float = 0.6, freshness_weight: float = 0.2, popularity_weight: float = 0.2) -> None:
+    def __init__(
+        self,
+        index: ContentIndex,
+        relevance_weight: float = 0.6,
+        freshness_weight: float = 0.2,
+        popularity_weight: float = 0.2,
+    ) -> None:
         self.index = index
         self.relevance_weight = relevance_weight
         self.freshness_weight = freshness_weight
@@ -57,13 +65,21 @@ class CandidateReranker:
         if not item or not item.get("published_at"):
             return 0.5
         try:
-            published = datetime.fromisoformat(item["published_at"]).replace(tzinfo=timezone.utc)
+            published = datetime.fromisoformat(item["published_at"]).replace(
+                tzinfo=timezone.utc
+            )
         except ValueError:
             return 0.5
         age_days = max((datetime.now(timezone.utc) - published).days, 0)
         return float(0.5 ** (age_days / 365))
 
-    def rerank(self, candidate_ids: list[str], query_text: str, popularity: dict[str, float] | None = None, top_n: int | None = None) -> list[tuple[str, float]]:
+    def rerank(
+        self,
+        candidate_ids: list[str],
+        query_text: str,
+        popularity: dict[str, float] | None = None,
+        top_n: int | None = None,
+    ) -> list[tuple[str, float]]:
         popularity = popularity or {}
         qv = self._query_vec(query_text)
         scored = []
@@ -75,7 +91,9 @@ class CandidateReranker:
             fresh = self.freshness(cid)
             pop = popularity.get(cid, 0.5)
             total = round(
-                self.relevance_weight * rel + self.freshness_weight * fresh + self.popularity_weight * pop,
+                self.relevance_weight * rel
+                + self.freshness_weight * fresh
+                + self.popularity_weight * pop,
                 4,
             )
             scored.append((cid, total))
@@ -115,7 +133,12 @@ class CandidateReranker:
             for cid, score in dense_scores.items()
         }
         lexical_rank = {
-            cid: 1 + sum(1 for other in lexical_scores.values() if other > lexical_scores.get(cid, 0.0))
+            cid: 1
+            + sum(
+                1
+                for other in lexical_scores.values()
+                if other > lexical_scores.get(cid, 0.0)
+            )
             for cid in dense_scores
         }
         fused = {

@@ -15,14 +15,22 @@ class SkillAffinity:
     events: int = 0
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    def apply(self, weight: float, now: datetime, short_half_life: float, long_half_life: float) -> None:
+    def apply(
+        self,
+        weight: float,
+        now: datetime,
+        short_half_life: float,
+        long_half_life: float,
+    ) -> None:
         age = (now - self.updated_at).total_seconds() / 86400
         self.short = self.short * decay(age, short_half_life) + weight
         self.long = self.long * decay(age, long_half_life) + weight * 0.5
         self.events += 1
         self.updated_at = now
 
-    def effective(self, now: datetime, short_half_life: float, long_half_life: float) -> tuple[float, float]:
+    def effective(
+        self, now: datetime, short_half_life: float, long_half_life: float
+    ) -> tuple[float, float]:
         age = (now - self.updated_at).total_seconds() / 86400
         return (
             self.short * decay(age, short_half_life),
@@ -31,7 +39,9 @@ class SkillAffinity:
 
 
 class UserProfile:
-    def __init__(self, user_id: str, tenant_id: str = "default", role: str | None = None) -> None:
+    def __init__(
+        self, user_id: str, tenant_id: str = "default", role: str | None = None
+    ) -> None:
         self.user_id = user_id
         self.tenant_id = tenant_id
         self.role = role
@@ -40,14 +50,25 @@ class UserProfile:
         self.served_counts: dict[str, int] = {}
         self.total_events = 0
 
-    def apply_event(self, skill_weights: dict[str, float], now: datetime, short_half_life: float, long_half_life: float) -> None:
+    def apply_event(
+        self,
+        skill_weights: dict[str, float],
+        now: datetime,
+        short_half_life: float,
+        long_half_life: float,
+    ) -> None:
         for skill_id, w in skill_weights.items():
             affinity = self.skills.setdefault(skill_id, SkillAffinity())
             affinity.apply(w, now, short_half_life, long_half_life)
         self.total_events += 1
 
-    def normalized(self, now: datetime, short_half_life: float, long_half_life: float) -> dict[str, dict[str, float]]:
-        raw = {sid: aff.effective(now, short_half_life, long_half_life) for sid, aff in self.skills.items()}
+    def normalized(
+        self, now: datetime, short_half_life: float, long_half_life: float
+    ) -> dict[str, dict[str, float]]:
+        raw = {
+            sid: aff.effective(now, short_half_life, long_half_life)
+            for sid, aff in self.skills.items()
+        }
         max_short = max((v[0] for v in raw.values()), default=0.0)
         max_long = max((v[1] for v in raw.values()), default=0.0)
         out = {}
@@ -68,10 +89,14 @@ class UserProfile:
         return "engaged"
 
     def blend(self, alpha_short: float = 0.6) -> dict[str, float]:
-        norm = self.normalized(datetime.now(timezone.utc), _DEFAULT_SHORT, _DEFAULT_LONG)
+        norm = self.normalized(
+            datetime.now(timezone.utc), _DEFAULT_SHORT, _DEFAULT_LONG
+        )
         blended = {}
         for sid, values in norm.items():
-            blended[sid] = round(alpha_short * values["short"] + (1 - alpha_short) * values["long"], 4)
+            blended[sid] = round(
+                alpha_short * values["short"] + (1 - alpha_short) * values["long"], 4
+            )
         return dict(sorted(blended.items(), key=lambda kv: -kv[1]))
 
 

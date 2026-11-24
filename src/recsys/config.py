@@ -9,7 +9,9 @@ class Settings:
         self.data_dir = data_dir or Path(__file__).resolve().parents[2] / "data"
         self.bus_backend = os.getenv("RECSYS_BUS", "memory")
         self.pulsar_url = os.getenv("RECSYS_PULSAR_URL", "pulsar://localhost:6650")
-        self.pulsar_topic = os.getenv("RECSYS_PULSAR_TOPIC", "persistent://public/default/user-events")
+        self.pulsar_topic = os.getenv(
+            "RECSYS_PULSAR_TOPIC", "persistent://public/default/user-events"
+        )
         self.short_half_life_days = float(os.getenv("RECSYS_SHORT_HALFLIFE_DAYS", "30"))
         self.long_half_life_days = float(os.getenv("RECSYS_LONG_HALFLIFE_DAYS", "180"))
         self.event_dedup_capacity = int(os.getenv("RECSYS_DEDUP_CAPACITY", "100000"))

@@ -8,7 +8,9 @@ from .embeddings import get_provider
 
 
 class ChunkStore:
-    def __init__(self, provider_name: str = "hashing", dim: int = 256, region: str | None = None) -> None:
+    def __init__(
+        self, provider_name: str = "hashing", dim: int = 256, region: str | None = None
+    ) -> None:
         self.provider = get_provider(provider_name, dim=dim, region=region)
         self.chunks: dict[str, dict] = {}
         self._ids: list[str] = []
@@ -32,7 +34,9 @@ class ChunkStore:
         self._matrix = None
         return key
 
-    def ingest_document(self, content_id: str, text: str, strategy: str = "structural") -> int:
+    def ingest_document(
+        self, content_id: str, text: str, strategy: str = "structural"
+    ) -> int:
         if strategy == "agentic" and os.getenv("SKILLS_LLM_BASE_URL"):
             chunks = agentic_chunks(
                 text,
@@ -59,14 +63,22 @@ class ChunkStore:
         if self._matrix is None:
             self._ids = sorted(self.chunks)
             if self._ids:
-                self._matrix = np_stack([self.chunks[k]["embedding"] for k in self._ids])
+                self._matrix = np_stack(
+                    [self.chunks[k]["embedding"] for k in self._ids]
+                )
             else:
                 self._matrix = np_zeros(0, self._dim())
 
     def _dim(self) -> int:
-        return len(next(iter(self.chunks.values()))["embedding"]) if self.chunks else getattr(self.provider, "dim", 256)
+        return (
+            len(next(iter(self.chunks.values()))["embedding"])
+            if self.chunks
+            else getattr(self.provider, "dim", 256)
+        )
 
-    def search(self, question: str, k: int = 4, content_filter: list[str] | None = None) -> list[dict]:
+    def search(
+        self, question: str, k: int = 4, content_filter: list[str] | None = None
+    ) -> list[dict]:
         import numpy as np
 
         self._ensure_matrix()
@@ -102,7 +114,7 @@ class ChunkStore:
         return results
 
 
-def np_stack(vectors: list) :
+def np_stack(vectors: list):
     import numpy as np
 
     return np.stack(vectors)
@@ -118,17 +130,27 @@ class RagService:
     def __init__(self, store: ChunkStore) -> None:
         self.store = store
 
-    def ask(self, question: str, k: int = 4, content_filter: list[str] | None = None) -> dict:
+    def ask(
+        self, question: str, k: int = 4, content_filter: list[str] | None = None
+    ) -> dict:
         hits = self.store.search(question, k=k, content_filter=content_filter)
         answer = self._synthesize(question, hits)
         return {
             "question": question,
             "answer": answer,
             "citations": [
-                {"n": i + 1, "content_id": h["content_id"], "section": h["section"], "score": h["score"], "snippet": h["text"][:220]}
+                {
+                    "n": i + 1,
+                    "content_id": h["content_id"],
+                    "section": h["section"],
+                    "score": h["score"],
+                    "snippet": h["text"][:220],
+                }
                 for i, h in enumerate(hits)
             ],
-            "generated_by": "llm" if (os.getenv("SKILLS_LLM_BASE_URL") and hits) else "extractive",
+            "generated_by": "llm"
+            if (os.getenv("SKILLS_LLM_BASE_URL") and hits)
+            else "extractive",
         }
 
     def _synthesize(self, question: str, hits: list[dict]) -> str:
@@ -137,15 +159,25 @@ class RagService:
             try:
                 import httpx
 
-                context = "\n\n".join(f"[{i+1}] {h['text']}" for i, h in enumerate(hits))
+                context = "\n\n".join(
+                    f"[{i + 1}] {h['text']}" for i, h in enumerate(hits)
+                )
                 prompt = (
                     "Answer the question using ONLY the provided context. Cite sources as [1], [2]. "
                     f"If the context is insufficient, say so.\n\nQuestion: {question}\n\nContext:\n{context}"
                 )
                 resp = httpx.post(
                     f"{base_url.rstrip('/')}/chat/completions",
-                    json={"model": os.getenv("SKILLS_LLM_MODEL", "gpt-4o-mini"), "messages": [{"role": "user", "content": prompt}], "temperature": 0},
-                    headers={"Authorization": f"Bearer {os.getenv('SKILLS_LLM_API_KEY', '')}"} if os.getenv("SKILLS_LLM_API_KEY") else {},
+                    json={
+                        "model": os.getenv("SKILLS_LLM_MODEL", "gpt-4o-mini"),
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {os.getenv('SKILLS_LLM_API_KEY', '')}"
+                    }
+                    if os.getenv("SKILLS_LLM_API_KEY")
+                    else {},
                     timeout=45.0,
                 )
                 resp.raise_for_status()
@@ -162,7 +194,9 @@ class RagService:
                 tokens = set(re.findall(r"[a-z0-9]+", sentence.lower()))
                 overlap = len(q_tokens & tokens)
                 if overlap:
-                    scored_sentences.append((overlap / max(len(q_tokens), 1), sentence.strip(), i + 1))
+                    scored_sentences.append(
+                        (overlap / max(len(q_tokens), 1), sentence.strip(), i + 1)
+                    )
         scored_sentences.sort(key=lambda t: (-t[0], t[2]))
         top = scored_sentences[:3]
         if not top:

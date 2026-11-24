@@ -16,7 +16,9 @@ def _sentences(text: str) -> list[str]:
     return out
 
 
-def structural_chunks(text: str, target_words: int = 120, overlap_words: int = 25) -> list[dict]:
+def structural_chunks(
+    text: str, target_words: int = 120, overlap_words: int = 25
+) -> list[dict]:
     sections: list[tuple[str, list[str]]] = []
     current_heading = ""
     current: list[str] = []
@@ -43,7 +45,9 @@ def structural_chunks(text: str, target_words: int = 120, overlap_words: int = 2
             buffer.append(sentence)
             count += len(sentence.split())
             if count >= target_words:
-                chunks.append({"text": " ".join(buffer).strip(), "section": section, "index": idx})
+                chunks.append(
+                    {"text": " ".join(buffer).strip(), "section": section, "index": idx}
+                )
                 idx += 1
                 tail: list[str] = []
                 tail_count = 0
@@ -54,7 +58,9 @@ def structural_chunks(text: str, target_words: int = 120, overlap_words: int = 2
                         break
                 buffer, count = tail, tail_count
         if buffer and " ".join(buffer).strip():
-            chunks.append({"text": " ".join(buffer).strip(), "section": section, "index": idx})
+            chunks.append(
+                {"text": " ".join(buffer).strip(), "section": section, "index": idx}
+            )
 
     for i, chunk in enumerate(chunks):
         chunk["chunk_id"] = f"ch{i:04d}"
@@ -62,7 +68,13 @@ def structural_chunks(text: str, target_words: int = 120, overlap_words: int = 2
     return chunks
 
 
-def semantic_chunks(text: str, provider, threshold: float = 0.35, min_words: int = 40, max_words: int = 220) -> list[dict]:
+def semantic_chunks(
+    text: str,
+    provider,
+    threshold: float = 0.35,
+    min_words: int = 40,
+    max_words: int = 220,
+) -> list[dict]:
     sentences = [s for s in _sentences(text) if len(s.split()) >= 3]
     if not sentences:
         return []
@@ -76,7 +88,14 @@ def semantic_chunks(text: str, provider, threshold: float = 0.35, min_words: int
     def flush() -> None:
         nonlocal current, current_vecs, current_words
         if current:
-            chunks.append({"text": " ".join(current).strip(), "section": "", "index": len(chunks), "strategy": "semantic"})
+            chunks.append(
+                {
+                    "text": " ".join(current).strip(),
+                    "section": "",
+                    "index": len(chunks),
+                    "strategy": "semantic",
+                }
+            )
             current, current_vecs, current_words = [], [], 0
 
     for sentence, vec in zip(sentences, embeddings):
@@ -113,18 +132,27 @@ AGENTIC_PROMPT = (
 )
 
 
-def agentic_chunks(text: str, llm_base_url: str, llm_model: str = "gpt-4o-mini", api_key: str = "") -> list[dict]:
+def agentic_chunks(
+    text: str, llm_base_url: str, llm_model: str = "gpt-4o-mini", api_key: str = ""
+) -> list[dict]:
     import json as _json
 
     import httpx
 
     payload = {
         "model": llm_model,
-        "messages": [{"role": "user", "content": AGENTIC_PROMPT.format(text=text[:6000])}],
+        "messages": [
+            {"role": "user", "content": AGENTIC_PROMPT.format(text=text[:6000])}
+        ],
         "temperature": 0,
     }
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-    resp = httpx.post(f"{llm_base_url.rstrip('/')}/chat/completions", json=payload, headers=headers, timeout=60.0)
+    resp = httpx.post(
+        f"{llm_base_url.rstrip('/')}/chat/completions",
+        json=payload,
+        headers=headers,
+        timeout=60.0,
+    )
     resp.raise_for_status()
     content = resp.json()["choices"][0]["message"]["content"].strip()
     content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content)

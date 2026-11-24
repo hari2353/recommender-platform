@@ -27,8 +27,15 @@ class RoleLadder:
                         skills[sid.strip()] = float(w)
                     elif pair.strip():
                         skills[pair.strip()] = 1.0
-                next_roles = [n.strip() for n in row.get("next_roles", "").split("|") if n.strip()]
-                roles[row["role_id"]] = RoleDefinition(role_id=row["role_id"], title=row["title"], skills=skills, next_roles=next_roles)
+                next_roles = [
+                    n.strip() for n in row.get("next_roles", "").split("|") if n.strip()
+                ]
+                roles[row["role_id"]] = RoleDefinition(
+                    role_id=row["role_id"],
+                    title=row["title"],
+                    skills=skills,
+                    next_roles=next_roles,
+                )
         return cls(roles)
 
     def get(self, role_id: str | None) -> RoleDefinition | None:
@@ -48,7 +55,13 @@ class RoleLadder:
 
 
 class HypothesisManager:
-    def __init__(self, ladder: RoleLadder, max_active: int = 8, seed: int = 42, epsilon: float = 0.15) -> None:
+    def __init__(
+        self,
+        ladder: RoleLadder,
+        max_active: int = 8,
+        seed: int = 42,
+        epsilon: float = 0.15,
+    ) -> None:
         self.ladder = ladder
         self.max_active = max_active
         self.epsilon = epsilon
@@ -56,12 +69,18 @@ class HypothesisManager:
         self._by_user: dict[str, list[Hypothesis]] = {}
 
     def hypotheses(self, user_id: str) -> list[Hypothesis]:
-        return [h for h in self._by_user.get(user_id, []) if h.status != HypothesisStatus.RETIRED]
+        return [
+            h
+            for h in self._by_user.get(user_id, [])
+            if h.status != HypothesisStatus.RETIRED
+        ]
 
     def all_hypotheses(self, user_id: str) -> list[Hypothesis]:
         return list(self._by_user.get(user_id, []))
 
-    def ensure_base_hypotheses(self, profile: UserProfile, ladder_role_id: str | None = None) -> list[Hypothesis]:
+    def ensure_base_hypotheses(
+        self, profile: UserProfile, ladder_role_id: str | None = None
+    ) -> list[Hypothesis]:
         existing = self._by_user.setdefault(profile.user_id, [])
         seen_ids = {h.id for h in existing}
         created = []
@@ -119,7 +138,9 @@ class HypothesisManager:
                 weak.status = HypothesisStatus.WEAK
         return created
 
-    def generate_with_llm(self, profile: UserProfile, llm_chat, recent_summary: str) -> list[Hypothesis]:
+    def generate_with_llm(
+        self, profile: UserProfile, llm_chat, recent_summary: str
+    ) -> list[Hypothesis]:
         prompt = (
             "You are a talent-development strategist. Given the learner profile and recent signals, "
             "propose 1-3 hypotheses about what content will help them.\n"
@@ -138,8 +159,14 @@ class HypothesisManager:
         import httpx
 
         base_url = os.getenv("SKILLS_LLM_BASE_URL", "").rstrip("/")
-        headers = {"Authorization": f"Bearer {os.getenv('SKILLS_LLM_API_KEY', '')}"} if os.getenv("SKILLS_LLM_API_KEY") else {}
-        resp = httpx.post(f"{base_url}/chat/completions", json=payload, headers=headers, timeout=30.0)
+        headers = (
+            {"Authorization": f"Bearer {os.getenv('SKILLS_LLM_API_KEY', '')}"}
+            if os.getenv("SKILLS_LLM_API_KEY")
+            else {}
+        )
+        resp = httpx.post(
+            f"{base_url}/chat/completions", json=payload, headers=headers, timeout=30.0
+        )
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
         content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content.strip())
@@ -174,7 +201,9 @@ class HypothesisManager:
         draws.sort(key=lambda pair: -pair[0])
         return draws[0][1]
 
-    def apply_feedback(self, user_id: str, hypothesis_id: str, success: bool, weight: float = 1.0) -> None:
+    def apply_feedback(
+        self, user_id: str, hypothesis_id: str, success: bool, weight: float = 1.0
+    ) -> None:
         for h in self.all_hypotheses(user_id):
             if h.id == hypothesis_id:
                 h.update(success, weight)

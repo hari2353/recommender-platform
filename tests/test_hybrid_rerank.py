@@ -4,8 +4,18 @@ from recsys.engine.reranker import CandidateReranker
 
 def build_index() -> ContentIndex:
     index = ContentIndex(dim=64)
-    index.upsert(content_id="a", title="Python testing", skills=["python"], objectives=["unit tests"])
-    index.upsert(content_id="b", title="Python testing", skills=["python"], objectives=["zebra workflows"])
+    index.upsert(
+        content_id="a",
+        title="Python testing",
+        skills=["python"],
+        objectives=["unit tests"],
+    )
+    index.upsert(
+        content_id="b",
+        title="Python testing",
+        skills=["python"],
+        objectives=["zebra workflows"],
+    )
     index.upsert(content_id="c", title="Kubernetes operations", skills=["kubernetes"])
     return index
 
@@ -25,7 +35,12 @@ def test_zero_lexical_weight_matches_dense_order():
     candidates = ["a", "b", "c"]
     dense_order = [cid for cid, _ in reranker.rerank(candidates, "kubernetes security")]
 
-    hybrid_order = [cid for cid, _ in reranker.rerank_hybrid(candidates, "kubernetes security", lexical_weight=0.0)]
+    hybrid_order = [
+        cid
+        for cid, _ in reranker.rerank_hybrid(
+            candidates, "kubernetes security", lexical_weight=0.0
+        )
+    ]
 
     assert hybrid_order == dense_order
 
@@ -53,4 +68,7 @@ def test_top_n_respected():
 def test_ties_break_by_candidate_id():
     reranker = CandidateReranker(build_index())
 
-    assert [cid for cid, _ in reranker.rerank_hybrid(["b", "a"], "python")] == ["a", "b"]
+    assert [cid for cid, _ in reranker.rerank_hybrid(["b", "a"], "python")] == [
+        "a",
+        "b",
+    ]

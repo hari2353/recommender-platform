@@ -1,4 +1,11 @@
-from recsys.content.sources import extract, estimate_duration_minutes, extract_from_aicc, extract_from_html, extract_from_scorm, parse_captions
+from recsys.content.sources import (
+    extract,
+    estimate_duration_minutes,
+    extract_from_aicc,
+    extract_from_html,
+    extract_from_scorm,
+    parse_captions,
+)
 from recsys.events.content_consumer import ContentEventProcessor
 
 
@@ -36,13 +43,19 @@ class FakeNormalizer:
         mapping = {"Kubernetes": "esco__004", "AWS": "esco__016", "Python": "esco__007"}
         for name, sid in mapping.items():
             if name.lower() in label.lower():
-                return {"skill_id": sid, "canonical_name": name, "tier": "master", "confidence": 1.0}
+                return {
+                    "skill_id": sid,
+                    "canonical_name": name,
+                    "tier": "master",
+                    "confidence": 1.0,
+                }
         return {"skill_id": None, "confidence": 0.0}
 
 
 def make_processor(index, chunk_store):
     tagger = __import__("recsys.content.tagger", fromlist=["SkillTagger"]).SkillTagger(
-        normalize_fn=FakeNormalizer(), candidate_skills=[{"id": "esco__004", "name": "Kubernetes"}]
+        normalize_fn=FakeNormalizer(),
+        candidate_skills=[{"id": "esco__004", "name": "Kubernetes"}],
     )
     return ContentEventProcessor(index, chunk_store, tagger)
 
@@ -60,7 +73,12 @@ def test_content_created_tagged_indexed_chunked(stack):
             "content_id": "c900",
             "title": "Advanced Kubernetes and AWS Operations",
             "source_type": "transcript",
-            "text": " ".join(["This course covers Kubernetes operations on AWS clusters with deep security practices."] * 12),
+            "text": " ".join(
+                [
+                    "This course covers Kubernetes operations on AWS clusters with deep security practices."
+                ]
+                * 12
+            ),
             "content_version": 3,
         }
     )
@@ -73,11 +91,18 @@ def test_content_created_tagged_indexed_chunked(stack):
 
 
 def test_stale_version_and_duplicate_rejected(stack):
-    _, index, *_ , _ , _, _, service = stack[:7]
+    _, index, *_, _, _, _, service = stack[:7]
     from recsys.rag.rag import ChunkStore
 
     proc = make_processor(index, ChunkStore())
-    base = {"event_id": "v1", "type": "course.created", "content_id": "c901", "title": "T", "text": "x" * 10, "content_version": 5}
+    base = {
+        "event_id": "v1",
+        "type": "course.created",
+        "content_id": "c901",
+        "title": "T",
+        "text": "x" * 10,
+        "content_version": 5,
+    }
     assert proc.process_dict(base) is True
     stale = dict(base, event_id="v2", content_version=4)
     assert proc.process_dict(stale) is False
@@ -91,8 +116,27 @@ def test_deleted_removes_content_and_chunks(stack):
 
     chunks_store = ChunkStore()
     proc = make_processor(index, chunks_store)
-    proc.process_dict({"event_id": "d0", "type": "course.created", "content_id": "c902", "title": "RAG Systems Guide", "source_type": "transcript", "text": " ".join(["Retrieval augmented generation explained for engineers building RAG systems today."] * 14)})
+    proc.process_dict(
+        {
+            "event_id": "d0",
+            "type": "course.created",
+            "content_id": "c902",
+            "title": "RAG Systems Guide",
+            "source_type": "transcript",
+            "text": " ".join(
+                [
+                    "Retrieval augmented generation explained for engineers building RAG systems today."
+                ]
+                * 14
+            ),
+        }
+    )
     before = len(chunks_store.chunks)
     assert before > 0
-    assert proc.process_dict({"event_id": "d1", "type": "course.deleted", "content_id": "c902"}) is True
+    assert (
+        proc.process_dict(
+            {"event_id": "d1", "type": "course.deleted", "content_id": "c902"}
+        )
+        is True
+    )
     assert "c902" not in index.items and len(chunks_store.chunks) < before

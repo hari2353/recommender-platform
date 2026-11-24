@@ -24,7 +24,13 @@ class ChunkStore:
         self._matrix = None
         return chunk_key
 
-    def ingest_document(self, content_id: str, text: str, target_words: int = 120, overlap_words: int = 25) -> int:
+    def ingest_document(
+        self,
+        content_id: str,
+        text: str,
+        target_words: int = 120,
+        overlap_words: int = 25,
+    ) -> int:
         from .chunker import contextual_chunks
 
         for chunk in contextual_chunks(text, target_words, overlap_words):
@@ -42,11 +48,15 @@ class ChunkStore:
         if self._matrix is None:
             self._ids = sorted(self.chunks)
             if self._ids:
-                self._matrix = np.stack([self.chunks[k]["embedding"] for k in self._ids])
+                self._matrix = np.stack(
+                    [self.chunks[k]["embedding"] for k in self._ids]
+                )
             else:
                 self._matrix = np.zeros((0, self.dim), dtype=np.float32)
 
-    def search(self, question: str, k: int = 4, content_filter: list[str] | None = None) -> list[dict]:
+    def search(
+        self, question: str, k: int = 4, content_filter: list[str] | None = None
+    ) -> list[dict]:
         self._ensure_matrix()
         if not self._ids:
             return []

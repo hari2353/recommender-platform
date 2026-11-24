@@ -3,11 +3,15 @@ from __future__ import annotations
 from ..text_utils import fold
 
 
-def gazetteer_extract(title: str, text: str, known_names: list[str], max_words: int = 4) -> list[str]:
+def gazetteer_extract(
+    title: str, text: str, known_names: list[str], max_words: int = 4
+) -> list[str]:
     surfaces: dict[str, str] = {}
     for name in known_names:
         surfaces.setdefault(fold(name), name)
-    ordered = dict(sorted(surfaces.items(), key=lambda kv: kv[0].count(" "), reverse=True))
+    ordered = dict(
+        sorted(surfaces.items(), key=lambda kv: kv[0].count(" "), reverse=True)
+    )
 
     words = fold(f"{title} {title} {text}").split()
     found: list[str] = []

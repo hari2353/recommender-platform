@@ -46,6 +46,12 @@ class ThompsonBandit:
 
     def report(self) -> list[dict]:
         return [
-            {"arm": key, "mean": round(arm.mean, 4), "alpha": round(arm.alpha, 3), "beta": round(arm.beta, 3), "pulls": arm.pulls}
+            {
+                "arm": key,
+                "mean": round(arm.mean, 4),
+                "alpha": round(arm.alpha, 3),
+                "beta": round(arm.beta, 3),
+                "pulls": arm.pulls,
+            }
             for key, arm in sorted(self.arms.items(), key=lambda kv: -kv[1].mean)
         ]

@@ -95,11 +95,23 @@ class TestCompletionSuppression:
     def test_completed_item_never_served_again(self, client) -> None:
         rec = client.get("/v1/users/ucomp/recommendations?k=3").json()
         target = rec["items"][0]["content_id"]
-        event = {"event_id": "c1", "user_id": "ucomp", "type": "completion", "content_id": target}
-        assert client.post("/v1/events", json={"events": [event]}).json()["accepted"] == 1
+        event = {
+            "event_id": "c1",
+            "user_id": "ucomp",
+            "type": "completion",
+            "content_id": target,
+        }
+        assert (
+            client.post("/v1/events", json={"events": [event]}).json()["accepted"] == 1
+        )
         # a repeat completion (new event id) is accepted as a new event,
         # but the filter is a set: it lands in hard_filters exactly once
-        assert client.post("/v1/events", json={"events": [dict(event, event_id="c2")]}).json()["accepted"] == 2
+        assert (
+            client.post(
+                "/v1/events", json={"events": [dict(event, event_id="c2")]}
+            ).json()["accepted"]
+            == 2
+        )
 
         profile = client.get("/v1/users/ucomp/profile").json()
         assert profile["hard_filters"].count(target) == 1
@@ -124,7 +136,9 @@ class TestRankingMetrics:
     def test_ndcg_hand_computed(self) -> None:
         # DCG = 1/log2(2) + 0 + 1/log2(4) = 1.5; IDCG = 1 + 1/log2(3)
         expected = 1.5 / (1 + 1 / __import__("math").log2(3))
-        assert ndcg_at_k(self.RANKED, {"a", "c"}, k=3) == pytest.approx(expected, rel=1e-4)
+        assert ndcg_at_k(self.RANKED, {"a", "c"}, k=3) == pytest.approx(
+            expected, rel=1e-4
+        )
         assert ndcg_at_k(["a"], {"a"}, k=1) == pytest.approx(1.0)
 
     def test_hit_rate(self) -> None:
@@ -147,21 +161,29 @@ FEEDBACK = {"r1": {"i1"}}
 class TestOffPolicyEval:
     def test_ips_reference_value(self) -> None:
         # weights 1,1,2,2; reward only on i1 -> weighted 1.0 over 2 rows
-        assert ips_estimate(IMPRESSIONS, FEEDBACK, lambda item, row: 0.5) == pytest.approx(0.5)
+        assert ips_estimate(
+            IMPRESSIONS, FEEDBACK, lambda item, row: 0.5
+        ) == pytest.approx(0.5)
 
     def test_snips_self_normalized(self) -> None:
         # SNIPS = sum(w*r)/sum(w) = 1.0/6.0
-        assert snips_estimate(IMPRESSIONS, FEEDBACK, lambda item, row: 0.5) == pytest.approx(1 / 6, rel=1e-3)
+        assert snips_estimate(
+            IMPRESSIONS, FEEDBACK, lambda item, row: 0.5
+        ) == pytest.approx(1 / 6, rel=1e-3)
 
     def test_effective_sample_size(self) -> None:
         # ESS = (sum w)^2 / sum(w^2) = 36/10
-        assert effective_sample_size(IMPRESSIONS, FEEDBACK, lambda item, row: 0.5) == pytest.approx(3.6, rel=1e-3)
+        assert effective_sample_size(
+            IMPRESSIONS, FEEDBACK, lambda item, row: 0.5
+        ) == pytest.approx(3.6, rel=1e-3)
 
     def test_uniform_propensities_agree(self) -> None:
         fn = lambda item, row: 0.5  # noqa: E731
         w = 0.5 / 0.5
         n = 4  # items
-        rows = [{"recommendation_id": "r", "items": ["a", "b"], "propensities": [0.5, 0.5]}]
+        rows = [
+            {"recommendation_id": "r", "items": ["a", "b"], "propensities": [0.5, 0.5]}
+        ]
         fb = {"r": {"a"}}
         # IPS mean over rows = (w*1 + w*0)/1 row = 1.0; SNIPS = 1/2 = 0.5
         assert ips_estimate(rows, fb, fn) == 1.0

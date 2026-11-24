@@ -39,7 +39,10 @@ def test_invalid_payload_counted_not_raised():
 
 def test_late_events_rejected_by_watermark():
     p = EventProcessor(late_event_days=7)
-    assert p.process_dict(base_event(event_id="old", ts="2020-01-01T00:00:00+00:00")) is False
+    assert (
+        p.process_dict(base_event(event_id="old", ts="2020-01-01T00:00:00+00:00"))
+        is False
+    )
     assert p.stats["late"] == 1
 
 
@@ -50,5 +53,7 @@ def test_dislike_is_valid_without_weight():
 
 def test_process_many_returns_stats():
     p = EventProcessor()
-    stats = p.process_many([base_event(), base_event(event_id="e2", content_id="c002"), {"bad": 1}])
+    stats = p.process_many(
+        [base_event(), base_event(event_id="e2", content_id="c002"), {"bad": 1}]
+    )
     assert stats["accepted"] == 2 and stats["invalid"] == 1

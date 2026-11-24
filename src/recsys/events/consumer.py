@@ -8,7 +8,12 @@ from .schema import Event, EVENT_WEIGHTS
 
 
 class EventProcessor:
-    def __init__(self, on_valid_event: Callable | None = None, dedup_capacity: int = 100000, late_event_days: int = 7) -> None:
+    def __init__(
+        self,
+        on_valid_event: Callable | None = None,
+        dedup_capacity: int = 100000,
+        late_event_days: int = 7,
+    ) -> None:
         self.on_valid_event = on_valid_event
         self.late_event_days = late_event_days
         self._seen: deque[str] = deque(maxlen=dedup_capacity)

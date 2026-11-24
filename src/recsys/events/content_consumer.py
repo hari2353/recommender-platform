@@ -25,13 +25,22 @@ class ContentEvent(BaseModel):
 
 
 class ContentEventProcessor:
-    def __init__(self, index, chunk_store, tagger: SkillTagger, dedup_capacity: int = 50000) -> None:
+    def __init__(
+        self, index, chunk_store, tagger: SkillTagger, dedup_capacity: int = 50000
+    ) -> None:
         self.index = index
         self.chunk_store = chunk_store
         self.tagger = tagger
         self._seen: deque[str] = deque(maxlen=dedup_capacity)
         self._seen_set: set[str] = set()
-        self.stats = {"created": 0, "updated": 0, "deleted": 0, "duplicates": 0, "stale_version": 0, "invalid": 0}
+        self.stats = {
+            "created": 0,
+            "updated": 0,
+            "deleted": 0,
+            "duplicates": 0,
+            "stale_version": 0,
+            "invalid": 0,
+        }
 
     def process_dict(self, raw: dict) -> bool:
         try:
@@ -65,17 +74,25 @@ class ContentEventProcessor:
         extracted_text = event.text
         objectives: list[str] = []
         title = event.title
-        if event.source_type.lower() in sources.MODALITY_BY_SOURCE and event.text and event.source_type.lower() != "transcript":
+        if (
+            event.source_type.lower() in sources.MODALITY_BY_SOURCE
+            and event.text
+            and event.source_type.lower() != "transcript"
+        ):
             parsed = sources.extract(event.source_type, event.text)
             extracted_text = parsed["text"] or event.text
             title = title or parsed["title"]
             objectives = parsed["objectives"]
 
-        tagging = self.tagger.tag(title or event.content_id, extracted_text, source_type=event.source_type)
+        tagging = self.tagger.tag(
+            title or event.content_id, extracted_text, source_type=event.source_type
+        )
         skill_ids = [t["skill_id"] for t in tagging["skills"]]
         meta = tagging["metadata"]
 
-        duration_class = event.duration_class or ("long" if meta["duration_minutes"] >= 45 else "short")
+        duration_class = event.duration_class or (
+            "long" if meta["duration_minutes"] >= 45 else "short"
+        )
         self.index.upsert(
             content_id=event.content_id,
             title=title or f"Content {event.content_id}",
@@ -84,7 +101,10 @@ class ContentEventProcessor:
             premium=event.premium,
             published_at=event.published_at,
             skills=skill_ids,
-            objectives=objectives or tagging["skills"] and [t["name"] for t in tagging["skills"][:3]] or [],
+            objectives=objectives
+            or tagging["skills"]
+            and [t["name"] for t in tagging["skills"][:3]]
+            or [],
             modality=meta["modality"],
             duration_minutes=meta["duration_minutes"],
             content_version=event.content_version,

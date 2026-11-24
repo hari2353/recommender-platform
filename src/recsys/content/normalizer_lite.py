@@ -16,7 +16,9 @@ def _tokens(text: str) -> set[str]:
 class NormalizerLite:
     """Self-contained stand-in for skills-engine resolution: exact > alias > blended vector+lexical."""
 
-    def __init__(self, taxonomy_csv: Path, dim: int = 256, threshold: float = 0.6) -> None:
+    def __init__(
+        self, taxonomy_csv: Path, dim: int = 256, threshold: float = 0.6
+    ) -> None:
         self.threshold = threshold
         self.exact: dict[str, str] = {}
         self.alias: dict[str, str] = {}
@@ -33,19 +35,34 @@ class NormalizerLite:
         provider = get_provider("hashing", dim=dim)
         self.provider = provider
         self.entries = entries
-        self.matrix = provider.embed_batch([e[1] for e in entries]) if entries else np.zeros((0, dim), dtype=np.float32)
+        self.matrix = (
+            provider.embed_batch([e[1] for e in entries])
+            if entries
+            else np.zeros((0, dim), dtype=np.float32)
+        )
 
     def __call__(self, label: str) -> dict:
         key = _key(label)
-        for table, method, confidence in ((self.exact, "exact", 1.0), (self.alias, "alias", 0.95)):
+        for table, method, confidence in (
+            (self.exact, "exact", 1.0),
+            (self.alias, "alias", 0.95),
+        ):
             hit = table.get(key)
             if hit:
-                return {"skill_id": hit, "canonical_name": _name_for(self.entries, hit), "tier": "master", "confidence": confidence, "method": method}
+                return {
+                    "skill_id": hit,
+                    "canonical_name": _name_for(self.entries, hit),
+                    "tier": "master",
+                    "confidence": confidence,
+                    "method": method,
+                }
         qv = self.provider.embed(label)
         sims = self.matrix @ qv
         best = int(np.argmax(sims)) if len(sims) else -1
         score = float(sims[best]) if best >= 0 else 0.0
-        lexical = _f1(_tokens(label), _tokens(self.entries[best][1])) if best >= 0 else 0.0
+        lexical = (
+            _f1(_tokens(label), _tokens(self.entries[best][1])) if best >= 0 else 0.0
+        )
         blended = 0.5 * score + 0.5 * lexical
         if blended >= self.threshold and best >= 0:
             return {

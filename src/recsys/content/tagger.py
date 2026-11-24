@@ -8,12 +8,19 @@ from .sources import MODALITY_BY_SOURCE, estimate_duration_minutes
 
 
 class SkillTagger:
-    def __init__(self, normalize_fn, candidate_skills: list[dict], llm_base_url: str | None = None) -> None:
+    def __init__(
+        self,
+        normalize_fn,
+        candidate_skills: list[dict],
+        llm_base_url: str | None = None,
+    ) -> None:
         """normalize_fn: raw label -> {skill_id, canonical_name, tier, confidence} (skills-engine resolver).
         candidate_skills: [{"id": ..., "name": ...}] taxonomy shortlist for the LLM prompt."""
         self.normalize_fn = normalize_fn
         self.candidate_skills = candidate_skills
-        self.base_url = (llm_base_url or os.getenv("SKILLS_LLM_BASE_URL", "")).rstrip("/")
+        self.base_url = (llm_base_url or os.getenv("SKILLS_LLM_BASE_URL", "")).rstrip(
+            "/"
+        )
         self.model = os.getenv("SKILLS_LLM_MODEL", "gpt-4o-mini")
 
     @property
@@ -34,7 +41,11 @@ class SkillTagger:
         seen: set[str] = set()
         for label in raw_labels[:10]:
             result = self.normalize_fn(label)
-            if result.get("skill_id") and result["skill_id"] not in seen and float(result.get("confidence", 0)) >= 0.5:
+            if (
+                result.get("skill_id")
+                and result["skill_id"] not in seen
+                and float(result.get("confidence", 0)) >= 0.5
+            ):
                 seen.add(result["skill_id"])
                 tagged.append(
                     {
@@ -67,10 +78,18 @@ class SkillTagger:
             'Reply JSON only: {"skills": ["...", "..."]}\n\n'
             f"Course content:\n{text[:4000]}"
         )
-        headers = {"Authorization": f"Bearer {os.getenv('SKILLS_LLM_API_KEY', '')}"} if os.getenv("SKILLS_LLM_API_KEY") else {}
+        headers = (
+            {"Authorization": f"Bearer {os.getenv('SKILLS_LLM_API_KEY', '')}"}
+            if os.getenv("SKILLS_LLM_API_KEY")
+            else {}
+        )
         resp = httpx.post(
             f"{self.base_url}/chat/completions",
-            json={"model": self.model, "messages": [{"role": "user", "content": prompt}], "temperature": 0},
+            json={
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0,
+            },
             headers=headers,
             timeout=30.0,
         )
@@ -84,4 +103,6 @@ class SkillTagger:
     def _rule_candidates(self, title: str, text: str) -> list[str]:
         from .extract_rules import gazetteer_extract
 
-        return gazetteer_extract(title, text, [s["name"] for s in self.candidate_skills])
+        return gazetteer_extract(
+            title, text, [s["name"] for s in self.candidate_skills]
+        )

@@ -81,23 +81,42 @@ def wire(data_dir: Path | None = None):
             return
         from ..events.schema import EVENT_WEIGHTS
 
-        weight = EVENT_WEIGHTS[event.type] * (1.0 + min(event.dwell_ms / 60000, 2.0) * 0.25)
+        weight = EVENT_WEIGHTS[event.type] * (
+            1.0 + min(event.dwell_ms / 60000, 2.0) * 0.25
+        )
         profile = profiles.get_or_create(event.user_id, event.tenant_id)
         item = index.items.get(event.content_id)
         skill_weights = {}
-        for sid in (item["skills"] if item else []):
+        for sid in item["skills"] if item else []:
             skill_weights[sid] = weight
         if skill_weights:
             from datetime import datetime, timezone
 
-            profile.apply_event(skill_weights, datetime.now(timezone.utc), settings.short_half_life_days, settings.long_half_life_days)
+            profile.apply_event(
+                skill_weights,
+                datetime.now(timezone.utc),
+                settings.short_half_life_days,
+                settings.long_half_life_days,
+            )
             hypotheses.ensure_base_hypotheses(profile)
 
-    processor = EventProcessor(on_valid_event=on_event, dedup_capacity=settings.event_dedup_capacity, late_event_days=settings.late_event_days)
-    bus = get_bus(settings.bus_backend, url=settings.pulsar_url, topic=settings.pulsar_topic)
+    processor = EventProcessor(
+        on_valid_event=on_event,
+        dedup_capacity=settings.event_dedup_capacity,
+        late_event_days=settings.late_event_days,
+    )
+    bus = get_bus(
+        settings.bus_backend, url=settings.pulsar_url, topic=settings.pulsar_topic
+    )
     bus.subscribe(processor.process_dict)
 
-    service = RecommenderService(index, profiles, hypotheses, bandit=bandit, diversity_lambda=settings.diversity_lambda)
+    service = RecommenderService(
+        index,
+        profiles,
+        hypotheses,
+        bandit=bandit,
+        diversity_lambda=settings.diversity_lambda,
+    )
     popularity = {cid: 0.4 for cid in index.ids}
     service.set_popularity(popularity)
 
@@ -105,7 +124,9 @@ def wire(data_dir: Path | None = None):
     lite = NormalizerLite(taxonomy_csv)
     candidate_skills = [{"id": sid, "name": name} for sid, name in lite.entries]
     tagger = SkillTagger(normalize_fn=lite, candidate_skills=candidate_skills)
-    chunk_store = ChunkStore(provider_name=__import__("os").getenv("RECSYS_EMBEDDING_PROVIDER", "hashing"))
+    chunk_store = ChunkStore(
+        provider_name=__import__("os").getenv("RECSYS_EMBEDDING_PROVIDER", "hashing")
+    )
     rag_service = RagService(chunk_store)
     content_processor = ContentEventProcessor(index, chunk_store, tagger)
 
@@ -158,16 +179,25 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         return stats
 
     @app.get("/v1/users/{user_id}/recommendations")
-    def recommend(user_id: str, k: int = Query(5, ge=1, le=50), role: str | None = Query(None, max_length=64), tenant_id: str = Query("default", max_length=64)) -> dict:
+    def recommend(
+        user_id: str,
+        k: int = Query(5, ge=1, le=50),
+        role: str | None = Query(None, max_length=64),
+        tenant_id: str = Query("default", max_length=64),
+    ) -> dict:
         premium = entitlements.is_premium(user_id, tenant_id)
-        result = service.serve(user_id, tenant_id, k=k, allow_premium=True, ladder_role_id=role)
+        result = service.serve(
+            user_id, tenant_id, k=k, allow_premium=True, ladder_role_id=role
+        )
         hyp = result.get("hypothesis") or {}
         enriched = []
         for item in result["items"]:
             entry = dict(item)
             if premium:
                 ctx = {
-                    "top_skills": list(profiles.get_or_create(user_id, tenant_id).blend())[:3],
+                    "top_skills": list(
+                        profiles.get_or_create(user_id, tenant_id).blend()
+                    )[:3],
                     "hypothesis_type": hyp.get("type"),
                     "hypothesis_target": hyp.get("id", "").split(":")[-1],
                 }
@@ -184,7 +214,9 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         if body.action not in ("like", "dislike"):
             raise HTTPException(status_code=422, detail="action must be like|dislike")
         success = body.action == "like"
-        outcome = service.apply_feedback(body.user_id, body.recommendation_id, body.content_id, success, weight=1.0)
+        outcome = service.apply_feedback(
+            body.user_id, body.recommendation_id, body.content_id, success, weight=1.0
+        )
         if not success:
             profile = profiles.get_or_create(body.user_id)
             profile.hard_filters.add(body.content_id)
@@ -200,7 +232,11 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             "user_id": user_id,
             "role": profile.role,
             "segment": profile.segment,
-            "skills": profile.normalized(datetime.now(timezone.utc), settings.short_half_life_days, settings.long_half_life_days),
+            "skills": profile.normalized(
+                datetime.now(timezone.utc),
+                settings.short_half_life_days,
+                settings.long_half_life_days,
+            ),
             "hard_filters": sorted(profile.hard_filters),
         }
 
@@ -214,7 +250,9 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         return hypotheses.report(user_id)
 
     @app.post("/v1/premium/learning-path/{user_id}")
-    def learning_path(user_id: str, target_role: str, tenant_id: str = "default") -> dict:
+    def learning_path(
+        user_id: str, target_role: str, tenant_id: str = "default"
+    ) -> dict:
         if not entitlements.is_premium(user_id, tenant_id):
             raise HTTPException(status_code=402, detail="premium feature")
         path = service.learning_path(user_id, target_role)
@@ -222,7 +260,9 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         return {"path": path, "narrative": narrative}
 
     @app.post("/admin/premium/{user_id}", dependencies=[Depends(require_admin)])
-    def grant_premium(user_id: str, tenant_id: str = Query("default", max_length=64)) -> dict:
+    def grant_premium(
+        user_id: str, tenant_id: str = Query("default", max_length=64)
+    ) -> dict:
         if len(user_id) > 128:
             raise HTTPException(status_code=422, detail="user_id too long")
         entitlements.grant(user_id, tenant_id)
@@ -248,16 +288,18 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
     def rag_query(body: RagQueryIn) -> dict:
         if not body.question.strip():
             raise HTTPException(status_code=422, detail="question required")
-        return rag_service.ask(body.question, k=body.k, content_filter=body.content_filter)
+        return rag_service.ask(
+            body.question, k=body.k, content_filter=body.content_filter
+        )
 
     @app.post("/v1/rag/documents")
     def rag_ingest(body: RagIngestIn) -> dict:
-        chunks = chunk_store.ingest_document(body.content_id, body.text, strategy=body.strategy)
+        chunks = chunk_store.ingest_document(
+            body.content_id, body.text, strategy=body.strategy
+        )
         return {"content_id": body.content_id, "chunks": chunks}
 
     return app
 
 
 app = create_app()
-
-

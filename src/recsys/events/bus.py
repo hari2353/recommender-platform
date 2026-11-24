@@ -44,7 +44,9 @@ class InMemoryBus(Bus):
 
 
 class PulsarBus(Bus):
-    def __init__(self, url: str, topic: str, subscription: str = "recsys-processor") -> None:
+    def __init__(
+        self, url: str, topic: str, subscription: str = "recsys-processor"
+    ) -> None:
         import pulsar
 
         self._client = pulsar.Client(url)
@@ -77,5 +79,8 @@ class PulsarBus(Bus):
 
 def get_bus(backend: str = "memory", **kwargs) -> Bus:
     if backend == "pulsar":
-        return PulsarBus(kwargs.get("url", "pulsar://localhost:6650"), kwargs.get("topic", "persistent://public/default/user-events"))
+        return PulsarBus(
+            kwargs.get("url", "pulsar://localhost:6650"),
+            kwargs.get("topic", "persistent://public/default/user-events"),
+        )
     return InMemoryBus()

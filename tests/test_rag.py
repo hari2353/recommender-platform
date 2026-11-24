@@ -2,7 +2,13 @@ from recsys.rag.chunker import semantic_chunks, structural_chunks
 from recsys.rag.embeddings import get_provider
 from recsys.rag.rag import ChunkStore, RagService
 
-LONG_TEXT = "\n".join([f"Paragraph {i}: " + "Kubernetes networking policies control traffic flow between pods. " * 4 for i in range(8)])
+LONG_TEXT = "\n".join(
+    [
+        f"Paragraph {i}: "
+        + "Kubernetes networking policies control traffic flow between pods. " * 4
+        for i in range(8)
+    ]
+)
 
 
 def test_structural_chunk_sizes_and_overlap():
@@ -43,7 +49,12 @@ def test_chunk_store_search_and_prefix_delete():
 
 def test_rag_extractive_answer_with_citations():
     store = ChunkStore(provider_name="hashing")
-    store.ingest_document("c008", "Pod security policies restrict container permissions. Network policies limit pod traffic. " * 6, strategy="structural")
+    store.ingest_document(
+        "c008",
+        "Pod security policies restrict container permissions. Network policies limit pod traffic. "
+        * 6,
+        strategy="structural",
+    )
     rag = RagService(store)
     out = rag.ask("What limits pod traffic?")
     assert "[1]" in out["answer"]

@@ -24,7 +24,9 @@ def test_skill_search_ranks_matching_content_first(stack):
 def test_reranker_blends_relevance_freshness_popularity(stack):
     _, index, *_ = stack
     reranker = CandidateReranker(index)
-    out = reranker.rerank(["c008", "c009", "c010"], "kubernetes operations security", top_n=3)
+    out = reranker.rerank(
+        ["c008", "c009", "c010"], "kubernetes operations security", top_n=3
+    )
     assert len(out) == 3
     scores = [s for _, s in out]
     assert scores == sorted(scores, reverse=True)
